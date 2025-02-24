@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id           String           @id @default(uuid())
+  name         String
+  email        String           @unique
+  password     String
+  role         Role             @default(TEACHER)
+  academicYear String
+  school       String?
+  arabicName   String
+  signature    String?
+  username     String           @default("123456")
+  classes      ClassTeacher[]
+  reports      StudentReport[]
+  subjects     SubjectTeacher[]
+}
+
+model GlobalSettings {
+  id         String    @id @default(uuid())
+  targetDate DateTime?
+}
+
+model Class {
+  id              String           @id @default(uuid())
+  name            String
+  grade           String
+  subjects        ClassSubject[]
+  teachers        ClassTeacher[]
+  students        Student[]
+  reports         StudentReport[]
+  subjectTeachers SubjectTeacher[]
+}
+
+model Student {
+  id          String          @id @default(uuid())
+  name        String
+  classId     String
+  dateOfBirth DateTime?
+  iqamaNo     String?
+  nationality String?
+  passportNo  String?
+  arabicName  String?
+  expenses    String          @default("paid")
+  password    String?
+  username    String?
+  school      String?
+  marks       Mark[]
+  class       Class           @relation(fields: [classId], references: [id])
+  reports     StudentReport[]
+}
+
+model Subject {
+  id          String             @id @default(uuid())
+  name        String             @unique
+  arabicName  String
+  classes     ClassSubject[]
+  marks       Mark[]
+  markConfigs MarkHeaderConfig[]
+  reports     StudentReport[]    @relation("subjectReports")
+  teachers    SubjectTeacher[]
+}
+
+model ClassTeacher {
+  id        String  @id @default(uuid())
+  classId   String
+  teacherId String
+  subjectId String?
+  class     Class   @relation(fields: [classId], references: [id])
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  marks     Mark[]  @relation("ClassTeacherMarks")
+
+  @@unique([classId, teacherId])
+  @@unique([classId, subjectId])
+  @@unique([classId, teacherId, subjectId])
+}
+
+model ClassSubject {
+  id        String  @id @default(uuid())
+  classId   String
+  subjectId String
+  class     Class   @relation(fields: [classId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+}
+
+model SubjectTeacher {
+  id        String  @id @default(uuid())
+  subjectId String
+  teacherId String
+  classId   String?
+  class     Class?  @relation(fields: [classId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([subjectId, teacherId, classId])
+}
+
+model Mark {
+  id              String        @id @default(uuid())
+  participation   Int?
+  homework        Int?
+  project         Int?
+  totalMarks      Int?
+  studentId       String
+  classTeacherId  String?
+  subjectId       String
+  exam       Int?
+  quiz     Int?
+  classActivities Int?
+  memorizing      Int?
+  oral        Int?
+  reading         Int?
+  academicYear    String
+  trimester       String
+  classTeacher    ClassTeacher? @relation("ClassTeacherMarks", fields: [classTeacherId], references: [id])
+  student         Student       @relation(fields: [studentId], references: [id])
+  subject         Subject       @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId, academicYear, trimester])
+}
+
+model StudentReport {
+  id              String   @id @default(uuid())
+  studentId       String
+  classId         String
+  teacherId       String
+  subjectId       String
+  academicYear    String
+  trimester       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  comment         String   @default("")
+  recommendations String[]
+  status          String
+  projectScore    Int?
+  quizScore       Int?
+  class           Class    @relation(fields: [classId], references: [id])
+  student         Student  @relation(fields: [studentId], references: [id])
+  subject         Subject  @relation("subjectReports", fields: [subjectId], references: [id])
+  teacher         Teacher  @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, subjectId, teacherId, academicYear, trimester])
+}
+
+model MarkHeaderConfig {
+  id        String   @id @default(uuid())
+  subjectId String
+  grade     String
+  headers   String[]
+  maxValues Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([subjectId, grade])
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+}

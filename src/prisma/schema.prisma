@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id       String           @id @default(uuid())
+  email    String           @unique
+  password String
+  name     String
+  role      Role            @default(TEACHER) // Add role to identify if the teacher has a specific role
+  subjects SubjectTeacher[] // Link to SubjectTeacher join table for subjects
+  classes  ClassTeacher[] // Link to ClassTeacher join table for classes
+}
+
+model Class {
+  id       String         @id @default(uuid())
+  name     String
+  teachers ClassTeacher[] // Link to ClassTeacher join table for teachers
+  students Student[]
+  subjects ClassSubject[] // Link to ClassSubject join table for subjects (opposite relation)
+}
+
+model Student {
+  id      String @id @default(uuid())
+  name    String
+  arabicName String?
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+  marks   Mark[] // Marks per subject/teacher combination
+  nationality      String?   // Optional field for nationality
+  dateOfBirth      DateTime? // Optional field for date of birth
+  iqamaNo  String?   // Optional field for ID/Iqama Number
+  passportNo   String?   // Optional field for passport number
+}
+
+model Subject {
+  id       String           @id @default(uuid())
+  name     String
+  teachers SubjectTeacher[] // Link to SubjectTeacher join table for teachers
+  classes  ClassSubject[] // Link to ClassSubject join table for classes (opposite relation)
+  marks    Mark[] // Add relation field for marks
+}
+
+model ClassTeacher {
+  id        String @id @default(uuid())
+  classId   String
+  teacherId String
+
+  class   Class   @relation(fields: [classId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  marks Mark[] // Link to marks for specific subjects under this teacher-class relationship
+
+  @@unique([classId, teacherId])
+}
+
+model ClassSubject {
+  id        String @id @default(uuid())
+  classId   String
+  subjectId String
+
+  class   Class   @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+}
+
+model SubjectTeacher {
+  id        String @id @default(uuid())
+  subjectId String
+  teacherId String
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([subjectId, teacherId])
+}
+
+model Mark {
+  id            String @id @default(uuid())
+  participation Int?
+  behavior      Int?
+  workingQuiz   Int?
+  project       Int?
+  finalExam     Int?
+  totalMarks    Int?
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  classTeacherId String // Reference to specific teacher-class assignment
+  classTeacher   ClassTeacher @relation(fields: [classTeacherId], references: [id])
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id]) // Linking to Subject model
+
+  @@unique([studentId, subjectId, classTeacherId]) // Ensure unique marks per student, subject, and teacher-class relationship
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+}

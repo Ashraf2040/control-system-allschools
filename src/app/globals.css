@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* globals.css */
+
+.report-card {
+    font-family: Arial, sans-serif;
+    color: #333;
+    
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #f9f9f9;
+  }
+  
+  .report-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .report-header h1 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .report-header p {
+    font-size: 16px;
+    margin: 5px 0;
+  }
+  
+  .marks-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .marks-table th,
+  .marks-table td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #ccc;
+  }
+  
+  .marks-table th {
+    background-color: #e0e0e0;
+    font-weight: bold;
+  }
+  
+  .marks-table tr:nth-child(even) {
+    background-color: #f4f4f4;
+  }
+  
+
+  .cl-avatarImage {
+    content: url('/hero.png'); /* Replace with the path to your custom avatar image */
+    width: 32px; /* Adjust the width as desired */
+    height: 32px; /* Adjust the height as desired */
+    /* Make it circular if desired */
+   
+
+
+    /* Ensures the image covers the avatar area */
+  }
+  .cl-avatarImage:hover {
+    opacity: 0.8;
+    transition: opacity 0.3s;
+  }
+  .cl-avatarBox {
+    background-image: url('/avatar.png');
+  }
+  .cl-userButtonBox{
+    background-image: url('/avatar.png');
+  }
+  @media print {
+    .page-break {
+      page-break-after: always;
+    }
+    .hidden {
+      display: block !important;
+    }
+    .print\\:hidden {
+      display: none !important;
+    }
+  }
+  

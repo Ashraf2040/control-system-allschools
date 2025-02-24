@@ -1,0 +1,35 @@
+.imageContainer {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+    position: relative;
+    
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .scrollingImages {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: scroll 40s linear infinite; /* Adjust speed here */
+  }
+  
+  .image {
+    width: 100px; /* Adjust image width */
+    height: auto;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: transparent;
+    margin: 0 10px; /* Space between images */
+  }
+  
+  @keyframes scroll {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
