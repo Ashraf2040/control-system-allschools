@@ -24,6 +24,8 @@ export async function GET(request: Request) {
         iqamaNo: true,
         passportNo: true,
         expenses: true,
+        username: true,
+        password: true,
       },
     });
 

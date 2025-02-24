@@ -1,8 +1,10 @@
+import { getPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+
 
 export async function DELETE(request: Request) {
   try {
+    const prisma = getPrismaClient();
     const { id } = await request.json();
 console.log("teacherId",id)
     // Delete teacher's class and subject assignments

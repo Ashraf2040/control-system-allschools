@@ -223,7 +223,14 @@
       "BANGLADESH":"بنجلي",
       "SUDANI":"سوداني",
       "JORDANIAN":"أردني",
-      "AMERICAN":"امريكي"
+      "AMERICAN":"امريكي",
+      "printCards": "طباعة بطاقات الطلاب",
+          "studentName": "الإسم",
+          "grade":"الصف",
+          "userName":"أسم المستخدم",
+          "password":"كلمة المرور",
+          "back":"عودة",
+          "loading":"برجاء الانتظار ......."
      
     
 
@@ -321,7 +328,13 @@
     "errorOccurred": "حدث خطأ أثناء العملية.",
     "classes": "الصفوف",
     "subjects": "المواد الدراسية",
-    "teachers": "المعلمون"
+    "teachers": "المعلمون",
+    "grade": "الصف",
+    "delete":"حذف",
+          "confirmDeleteClass":"تأكيد حذف الفصل",
+          "areYouSureDeleteClass":"هل انت متأكد",
+          "cancel":"إلغاء",
+          "actions":"إعداد"
   },
   "headers":{
     "selectGrade": "اختر المرحلة",

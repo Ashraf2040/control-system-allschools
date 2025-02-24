@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
 import emailjs from '@emailjs/browser';
-
 import 'react-toastify/dist/ReactToastify.css';
 import { Toaster } from 'react-hot-toast';
 import { useLocale, useTranslations } from 'next-intl';
 import AllTeachersModal from '../_components/AllTeachersModal';
 import { fetchWithSchool } from '@/lib/fetchWithSchool';
+
 const TeacherProgressPage = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
@@ -16,17 +16,17 @@ const TeacherProgressPage = () => {
   const [isTeachersModalOpen, setIsTeachersModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    classes: [] as string[], // Array of selected class IDs
-    subjects: [] as string[], // Array of selected subject IDs
+    classes: [] as string[],
+    subjects: [] as string[],
     academicYear: '',
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState<any[]>([]); // To hold the list of classes
-  const [subjects, setSubjects] = useState<any[]>([]); // To hold the list of subjects
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
   const [targetDate, setTargetDate] = useState<string>('');
   const [users, setUsers] = useState<User[]>([]);
-
+  const [selectedTrimester, setSelectedTrimester] = useState<string>('First Trimester'); // New state for trimester
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -34,6 +34,10 @@ const TeacherProgressPage = () => {
     id: string;
     emailAddresses: { emailAddress: string }[];
   }
+
+  const t = useTranslations('teacherProgress');
+  const locale = useLocale();
+
   useEffect(() => {
     const fetchTargetDate = async () => {
       try {
@@ -49,9 +53,9 @@ const TeacherProgressPage = () => {
 
     fetchTargetDate();
   }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       const response = await fetch('/api/settings', {
         method: 'POST',
@@ -66,35 +70,32 @@ const TeacherProgressPage = () => {
       toast.error('Error updating target date.');
     }
   };
+
   useEffect(() => {
-    // Fetching teacher progress
     const fetchTeacherProgress = async () => {
       try {
-        const response = await fetch('/api/allTeachersProgress?trimester=First Trimester');
+        const response = await fetch(`/api/allTeachersProgress?trimester=${selectedTrimester}`);
         if (!response.ok) throw new Error('Failed to fetch teacher progress');
         const data: Teacher[] = await response.json();
         setTeachers(data);
-        console.log(data)
+        console.log(data);
       } catch (error) {
         toast.error('Error fetching teacher data.');
       }
     };
 
-    fetchTeacherProgress();
-    const allTeachers=async()=>{
+    const fetchAllTeachers = async () => {
       try {
         const response = await fetchWithSchool('/api/allTeachers');
         if (!response.ok) throw new Error('Failed to fetch teacher progress');
         const data: Teacher[] = await response.json();
         setAllTeachers(data);
-        console.log(data)
+        console.log(data);
       } catch (error) {
         toast.error('Error fetching teacher data.');
       }
-    }
-     allTeachers();
-   
-    // Fetch all classes
+    };
+
     const fetchClasses = async () => {
       try {
         const response = await fetch('/api/getAllClasses');
@@ -106,7 +107,6 @@ const TeacherProgressPage = () => {
       }
     };
 
-    // Fetch all subjects
     const fetchSubjects = async () => {
       try {
         const response = await fetch('/api/subjects');
@@ -118,56 +118,49 @@ const TeacherProgressPage = () => {
       }
     };
 
+    fetchTeacherProgress();
+    fetchAllTeachers();
     fetchClasses();
     fetchSubjects();
-  }, []);
-   console.log(selectedTeacher)
+  }, [selectedTrimester]); // Re-fetch when trimester changes
+
   const handleSettingsClick = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setFormData({
       name: teacher.name,
-      // Safe mapping for classes and subjects
-      classes: teacher.classes ? teacher.classes.map((cls) => cls.id) : [], // Assuming classes have `id`
-      subjects: teacher.subjects ? teacher.subjects.map((sub) => sub.id) : [], // Assuming subjects have `id`
+      classes: teacher.classes ? teacher.classes.map((cls) => cls.id) : [],
+      subjects: teacher.subjects ? teacher.subjects.map((sub) => sub.id) : [],
       academicYear: teacher.academicYear,
     });
     setIsFormOpen(true);
   };
 
   const handleSave = async () => {
-    if (!selectedTeacher) return;  // Ensure the selected teacher is not null or undefined
+    if (!selectedTeacher) return;
     setLoading(true);
-  
     try {
       const response = await fetch(`/api/updateTeacher`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: selectedTeacher.teacherId,  // Pass the teacher ID to the API
+          id: selectedTeacher.teacherId,
           ...formData,
+          classId: formData.classes.length > 0 ? formData.classes[0] : null,
         }),
       });
-  
-      if (!response.ok) throw new Error('Failed to update teacher data');
+      if (!response.ok) throw new Error('Failed to update teacher');
       toast.success('Teacher updated successfully');
       setIsFormOpen(false);
-  
-      // Update the local state with the updated data
-      setTeachers(teachers.map((teacher) =>
-        teacher.id === selectedTeacher.id ? { ...teacher, ...formData } : teacher
-      ));
     } catch (error) {
       toast.error('Error updating teacher');
     } finally {
       setLoading(false);
     }
   };
-  console.log(teachers)
 
   const handleDelete = async () => {
     if (!selectedTeacher) return;
     setLoading(true);
-
     try {
       const response = await fetch(`/api/deleteTeacher`, {
         method: 'DELETE',
@@ -186,47 +179,31 @@ const TeacherProgressPage = () => {
     }
   };
 
-  const t = useTranslations('teacherProgress');
-  const locale = useLocale();
+  useEffect(() => {
+    fetch('/api/users')
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to fetch users');
+        return response.json();
+      })
+      .then((data) => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching users:', error);
+        setError(error.message);
+        setLoading(false);
+      });
+  }, []);
 
-
- 
- 
-  
-    useEffect(() => {
-      // Fetch users from the API route
-      fetch('/api/users')
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch users');
-          }
-          return response.json();
-        })
-        .then((data) => {
-          setUsers(data);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Error fetching users:', error);
-          setError(error.message);
-          setLoading(false);
-        });
-    }, []);
-  
-  console.log(users)
-  console.log(allTeachers)
   const sendTeacherDetails = async () => {
     try {
-      emailjs.init('8K8-7J7IYhmsBAf6w'); // Initialize EmailJS with your Public Key
-  
-      // Loop through all teachers and send emails
+      emailjs.init('8K8-7J7IYhmsBAf6w');
       for (const teacher of allTeachers) {
-        // Ensure the teacher has an email address
         if (!teacher.email) {
           console.error(`No email found for teacher: ${teacher.name}`);
-          continue; // Skip this teacher
+          continue;
         }
-  
         const emailParams = {
           name: teacher.name,
           school: teacher.school,
@@ -234,28 +211,21 @@ const TeacherProgressPage = () => {
           classes: teacher.classes?.map((cls) => cls.class.name).join(', '),
           username: teacher.username,
           password: teacher.password,
-          to_email: teacher.email, // Use the teacher's email address
+          to_email: teacher.email,
         };
-  
-        // Send email using EmailJS
-        await emailjs.send(
-          'service_56p70zt', // Replace with your Service ID
-          'template_llpm0a5', // Replace with your Template ID
-          emailParams
-        );
+        await emailjs.send('service_56p70zt', 'template_llpm0a5', emailParams);
       }
-  
       toast.success('Emails sent successfully!');
     } catch (error) {
       console.error('Error sending emails:', error);
       toast.error('Failed to send emails.');
     }
   };
+
   return (
-    <div className="p-6 ">
+    <div className="p-6">
       <div className="p-6 md:flex md:flex-col md:items-center">
         <Toaster position="top-right" />
-
         <form onSubmit={handleSubmit} className="space-y-4 md:flex md:w-3/5 items-center md:justify-between shadow-md p-4 rounded-lg">
           <h1 className="text-xl text-center text-main font-bold w-full md:w-fit">{t('setTargetDate')}</h1>
           <div>
@@ -276,31 +246,42 @@ const TeacherProgressPage = () => {
           </button>
         </form>
       </div>
-     <div className='flex justify-between
-      items-center'>
-     <h1 className="text-2xl font-semibold  text-center text-main">{t('teacherProgress')}</h1>
-      <div className='flex items-center justify-center gap-2'>
-        
-        <button
-        onClick={() => setIsTeachersModalOpen(true)}
-        className="bg-main text-white px-6 py-2 rounded-md hover:bg-third hover:text-main transition mb-6 font-semibold"
-      >
-        Show Teachers Details
-      </button>
-      <button
+
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold text-center text-main">{t('teacherProgress')}</h1>
+        <div className="flex items-center gap-4">
+          <select
+            value={selectedTrimester}
+            onChange={(e) => setSelectedTrimester(e.target.value)}
+            className="border p-2 rounded-md"
+          >
+            <option value="First Trimester">First Trimester</option>
+            <option value="Second Trimester">Second Trimester</option>
+            <option value="Third Trimester">Third Trimester</option>
+          </select>
+          <button
+            onClick={() => setIsTeachersModalOpen(true)}
+            className="bg-main text-white px-6 py-2 rounded-md hover:bg-third hover:text-main transition font-semibold"
+          >
+            Show Teachers Details
+          </button>
+          <button
             onClick={sendTeacherDetails}
-            className="bg-main text-white px-6 py-2 rounded-md hover:bg-third hover:text-main transition mb-6 font-semibold"
+            className="bg-main text-white px-6 py-2 rounded-md hover:bg-third hover:text-main transition font-semibold"
           >
             Send Teachers Details
-          </button></div>
-     </div>
+          </button>
+        </div>
+      </div>
+
       {isTeachersModalOpen && (
         <AllTeachersModal
           teachers={allTeachers}
           onClose={() => setIsTeachersModalOpen(false)}
         />
       )}
-      <div className='overflow-x-auto'>
+
+      <div className="overflow-x-auto">
         <table className="min-w-full border-collapse border border-gray-300 text-sm">
           <thead className="bg-gray-200">
             <tr>
@@ -320,7 +301,7 @@ const TeacherProgressPage = () => {
                 <td className="border p-4">{teacher?.subjects?.map((sub) => sub).join(', ')}</td>
                 <td className="border p-4">{teacher?.classesAssigned.map((cls) => cls).join(', ')}</td>
                 <td className="border p-4">
-                  {teacher?.completedClasses.length === teacher?.classesAssigned.length && teacher?.classesAssigned.length!== 0 ? (
+                  {teacher?.completedClasses.length === teacher?.classesAssigned.length && teacher?.classesAssigned.length !== 0 ? (
                     <span className="text-green-500 font-semibold">{t('allClassesCompleted')}</span>
                   ) : (
                     teacher?.completedClasses.map((cls) => cls).join(', ')
@@ -354,7 +335,6 @@ const TeacherProgressPage = () => {
                 placeholder={t('name')}
                 className="w-full border p-3 rounded-md text-lg"
               />
-
               <h1>{t('classes')}</h1>
               <select
                 name="classes"
@@ -374,7 +354,6 @@ const TeacherProgressPage = () => {
                   </option>
                 ))}
               </select>
-
               <h1>{t('subjects')}</h1>
               <select
                 name="subjects"
@@ -394,7 +373,6 @@ const TeacherProgressPage = () => {
                   </option>
                 ))}
               </select>
-
               <select
                 name="academicYear"
                 value={formData.academicYear}

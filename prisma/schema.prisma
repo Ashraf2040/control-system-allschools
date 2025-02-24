@@ -37,6 +37,7 @@ model Class {
   students        Student[]
   reports         StudentReport[]
   subjectTeachers SubjectTeacher[]
+  marks           Mark[] // Add this opposite relation field
 }
 
 model Student {
@@ -111,21 +112,23 @@ model Mark {
   project         Int?
   totalMarks      Int?
   studentId       String
-  classTeacherId  String?
+  classId         String // Foreign key to Class
+  classTeacherId  String? // Optional foreign key to ClassTeacher
   subjectId       String
-  exam       Int?
-  quiz     Int?
+  exam            Int?
+  quiz            Int?
   classActivities Int?
   memorizing      Int?
-  oral        Int?
+  oral            Int?
   reading         Int?
   academicYear    String
   trimester       String
+  class           Class         @relation(fields: [classId], references: [id]) // Relation to Class
   classTeacher    ClassTeacher? @relation("ClassTeacherMarks", fields: [classTeacherId], references: [id])
   student         Student       @relation(fields: [studentId], references: [id])
   subject         Subject       @relation(fields: [subjectId], references: [id])
 
-  @@unique([studentId, subjectId, academicYear, trimester])
+  @@unique([studentId, subjectId, classId, academicYear, trimester])
 }
 
 model StudentReport {

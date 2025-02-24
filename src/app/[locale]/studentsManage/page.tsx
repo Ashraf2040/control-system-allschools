@@ -197,6 +197,12 @@ const locale = useLocale();
         >
           {t('viewStudentsReports')}
         </button>
+        <button
+            className="text-white md:max-w-fit bg-main text-center rounded px-4 py-2 font-semibold"
+            onClick={() => router.push('/printCards')}
+          >
+            {t('printCards')}
+          </button>
       </div>
     </div>
 

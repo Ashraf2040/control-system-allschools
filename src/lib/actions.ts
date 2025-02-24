@@ -194,6 +194,10 @@ export async function updateStudentMarks(studentId: string, updatedData: Partial
 }
 
 
+// src/lib/actions.ts
+
+
+// src/lib/actions.ts
 export async function getStudentWithMarks(studentId: string) {
   const prisma = getPrismaClient();
   return prisma.student.findUnique({

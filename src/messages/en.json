@@ -216,7 +216,15 @@
           "YEMENI":"YEMENI",
           "TURKEY":"TURKEY",
           "EGYPTIAN" :"EGYPTIAN",
-          "SUDANI"  :"SUDANI"
+          "SUDANI"  :"SUDANI",
+          "printCards": "Print Students Cards",
+          "studentName": "Name",
+          "grade":"Grade",
+          "userName":"User Name",
+          "password":"Password",
+          "back":"Back",
+          "loading":"Loading..."
+         
           
         },
         "createNewStudent":{
@@ -313,7 +321,13 @@
           "errorOccurred": "An error occurred during the operation.",
           "classes": "Classes",
           "subjects": "Subjects",
-          "teachers": "Teachers"
+          "teachers": "Teachers",
+          "grade": "Grade",
+          "delete":"Delete",
+          "confirmDeleteClass":"Confirm deletion",
+          "areYouSureDeleteClass":"Are You sure ?",
+          "cancel":"Cancel",
+          "actions":"Actions"
         },
         "headers":{
           "selectGrade": "Select Grade",

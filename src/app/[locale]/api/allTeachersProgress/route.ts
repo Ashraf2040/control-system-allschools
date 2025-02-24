@@ -1,111 +1,168 @@
 import { getPrismaClient } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-
-// Modify to accept query parameters (e.g. trimester)
 export async function GET(request: Request) {
-   const prisma = getPrismaClient()
+  const prisma = getPrismaClient();
   try {
-    // Extract the trimester from the query parameters
     const url = new URL(request.url);
-    const trimester = url.searchParams.get('trimester'); // Get the trimester from query params
+    const trimester = url.searchParams.get("trimester");
 
-    console.log("Trimester:", trimester);
-
+    console.log("Requested Trimester:", trimester);
     if (!trimester) {
-      return NextResponse.json({ message: 'Trimester is required' }, { status: 400 });
+      return NextResponse.json({ message: "Trimester is required" }, { status: 400 });
     }
 
-    // Fetch all teachers with their details, subjects, classes, and marks
     const teachers = await prisma.teacher.findMany({
-      where: {
-        role: 'TEACHER', // Ensure you're fetching only teachers
-      },
+      where: { role: "TEACHER" },
       include: {
-        subjects: {
-          include: {
-            subject: true,
-          },
-        },
+        subjects: { include: { subject: true } },
         classes: {
           include: {
-            class: true, // Include the actual class name
+            class: true,
             marks: {
-              where: {
-                trimester: trimester, // Filter marks by the selected trimester
-              },
+              where: { trimester: { equals: trimester, mode: "insensitive" } },
             },
           },
         },
       },
     });
 
-    // Process progress data for each teacher
+    console.log(`Found ${teachers.length} teachers.`);
+
     const progressData = teachers.map((teacher) => {
-      // Log teacher info
-      console.log(`Processing teacher: ${teacher.name} (${teacher.id})`);
+      console.log(`\nProcessing teacher: ${teacher.name} (ID: ${teacher.id})`);
 
-      // Filter for completed classes where all marks are filled and not zero
+      const teacherSubjects = teacher.subjects.map((s) => ({
+        id: s.subjectId.toString(), // Ensure subjectId is a string for consistent comparison
+        name: s.subject.name,
+      }));
+      console.log(
+        `Assigned Subjects:`,
+        teacherSubjects.map((s) => `${s.name} (ID: ${s.id})`).join(", ")
+      );
+      const teacherSubjectIds = teacherSubjects.map((s) => s.id);
+
+      const assignedClasses = teacher.classes.map((c) => c.class.name);
+      console.log(`Assigned Classes: ${assignedClasses.join(", ") || "None"}`);
+
       const completedClasses = teacher.classes.filter((classTeacher) => {
-        // Log info about the class and marks
-        console.log(`Fetching marks for class: ${classTeacher.class.name}, trimester: ${trimester}, teacher ID: ${classTeacher.teacherId}`);
+        console.log(`\nEvaluating Class: ${classTeacher.class.name} (ClassTeacher ID: ${classTeacher.id})`);
 
-        // For each subject, check if all marks are filled
-        const allMarksFilled = classTeacher.marks.length > 0 && classTeacher.marks.every((mark) => {
-          return (
-            mark.participation != null && mark.participation !== 0 &&
-            mark.homework != null && mark.homework !== 0 &&
-            mark.quiz != null && mark.quiz !== 0 &&
-            // mark.project != null && mark.project !== 0 &&
-            mark.exam != null && mark.exam !== 0
-          );
+        // Log all marks before filtering
+        console.log(
+          `All Marks for Class:`,
+          classTeacher.marks.map((m) => ({
+            subjectId: m.subjectId.toString(), // Ensure subjectId is a string
+            participation: m.participation,
+            homework: m.homework,
+            quiz: m.quiz,
+            exam: m.exam,
+          }))
+        );
+        console.log("classTeacherMarks is", classTeacher.marks);
+
+        const relevantMarks = classTeacher.marks.filter((mark) => {
+          const markSubjectId = mark.subjectId.toString(); // Normalize to string
+          console.log(`Checking mark subjectId: ${markSubjectId}, against teacherSubjectIds:`, teacherSubjectIds);
+          return teacherSubjectIds.includes(markSubjectId);
         });
+        console.log("relevantMarks", relevantMarks);
+        console.log(
+          `Relevant Marks for Teacher's Subjects:`,
+          relevantMarks.map((m) => ({
+            subjectId: m.subjectId.toString(),
+            participation: m.participation,
+            homework: m.homework,
+            quiz: m.quiz,
+            exam: m.exam,
+          }))
+        );
 
-      
-        return allMarksFilled;
+        // Check if quiz and exam are non-null and non-zero for completion
+        const allQuizAndExamFilled =
+          relevantMarks.length > 0 &&
+          relevantMarks.every(
+            (mark) => mark.quiz != null && mark.quiz > 0 && mark.exam != null && mark.exam > 0
+          );
+
+        console.log(`Class: ${classTeacher.class.name}, All Quiz and Exam Filled: ${allQuizAndExamFilled}`);
+        console.log(
+          `Reason: ${
+            relevantMarks.length === 0
+              ? "No relevant marks found"
+              : allQuizAndExamFilled
+              ? "All quiz and exam marks are non-null and non-zero"
+              : "Some quiz or exam marks are missing or zero"
+          }`
+        );
+        return allQuizAndExamFilled;
       });
 
-      // Now check for incomplete classes where marks are missing or zero
       const incompleteClasses = teacher.classes.filter((classTeacher) => {
-        // Log info about marks in this class
-      
+        console.log(`\nEvaluating Class for Incomplete: ${classTeacher.class.name} (ClassTeacher ID: ${classTeacher.id})`);
 
-        // Ensure marks are filtered by subject and trimester
-        const subjectMarks = classTeacher.marks.filter((mark) => mark.subjectId); // Adjust subject filtering if necessary
-        
+        console.log(
+          `All Marks for Class (Incomplete Check):`,
+          classTeacher.marks.map((m) => ({
+            subjectId: m.subjectId.toString(),
+            participation: m.participation,
+            homework: m.homework,
+            quiz: m.quiz,
+            exam: m.exam,
+          }))
+        );
 
-        // Check if any marks are missing or zero
-        return classTeacher.marks.length === 0 || classTeacher.marks.some((mark) => (
-          mark.participation === 0 ||
-          mark.homework === 0 ||
-          mark.quiz === 0 ||
-          // mark.project === 0 ||
-          mark.exam === 0 
-        ));
+        const relevantMarks = classTeacher.marks.filter((mark) => {
+          const markSubjectId = mark.subjectId.toString();
+          return teacherSubjectIds.includes(markSubjectId);
+        });
+        console.log(
+          `Relevant Marks for Teacher's Subjects (Incomplete Check):`,
+          relevantMarks.map((m) => ({
+            subjectId: m.subjectId.toString(),
+            participation: m.participation,
+            homework: m.homework,
+            quiz: m.quiz,
+            exam: m.exam,
+          }))
+        );
+
+        const isIncomplete =
+          relevantMarks.length === 0 ||
+          relevantMarks.some((mark) => mark.quiz === 0 || mark.quiz == null || mark.exam === 0 || mark.exam == null);
+
+        console.log(`Class: ${classTeacher.class.name}, Is Incomplete: ${isIncomplete}`);
+        console.log(
+          `Reason: ${
+            relevantMarks.length === 0
+              ? "No relevant marks found"
+              : isIncomplete
+              ? "Some quiz or exam marks are missing or zero"
+              : "All quiz and exam marks are complete"
+          }`
+        );
+        return isIncomplete;
       });
 
-      // Log the completed and incomplete classes for this teacher
-      
-
-      // Return the complete teacher object including details, subjects, and progress
-      return {
-        teacherId: teacher.id, // Teacher ID
-        name: teacher.name, // Teacher name
-        arabicName: teacher.arabicName, // Teacher Arabic name
-        academicYear: teacher.academicYear, // Teacher's academic year
-        email: teacher.email, // Teacher's email (or any other detail you want)
-        role: teacher.role, // Teacher's role (in case needed)
-        subjects: teacher.subjects.map((subject) => subject.subject.name), // Subjects taught by the teacher
-        classesAssigned: teacher.classes.map((classTeacher) => classTeacher.class.name), // All classes assigned to the teacher
-        completedClasses: completedClasses.map((classTeacher) => classTeacher.class.name), // Completed classes
-        incompleteClasses: incompleteClasses.map((classTeacher) => classTeacher.class.name), // Incomplete classes
+      const teacherData = {
+        teacherId: teacher.id,
+        name: teacher.name,
+        arabicName: teacher.arabicName,
+        academicYear: teacher.academicYear,
+        email: teacher.email,
+        role: teacher.role,
+        subjects: teacherSubjects.map((s) => s.name),
+        classesAssigned: assignedClasses,
+        completedClasses: completedClasses.map((c) => c.class.name),
+        incompleteClasses: incompleteClasses.map((c) => c.class.name),
       };
+      console.log(`Teacher Progress Data:`, teacherData);
+      return teacherData;
     });
 
-    // Return the combined data (teachers with details, subjects, classes, and progress information)
     return NextResponse.json(progressData);
   } catch (error) {
-    console.error('Error fetching teachers with progress:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.error("Error fetching teachers with progress:", error);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

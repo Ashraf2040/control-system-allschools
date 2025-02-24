@@ -112,7 +112,7 @@ const MarkHeaderConfigForm: React.FC<MarkHeaderConfigFormProps> = ({ subjects })
             className="border rounded p-2 w-full"
           >
             <option value="">{t('selectSubject')}</option>
-            {subjects.map((subject) => (
+            {subjects?.map((subject) => (
               <option key={subject.id} value={subject.id}>
                 {subject.name}
               </option>
@@ -128,7 +128,7 @@ const MarkHeaderConfigForm: React.FC<MarkHeaderConfigFormProps> = ({ subjects })
             className="border rounded p-2 w-full"
           >
             <option value="">{t('selectGrade')}</option>
-            {grades.map((grade) => (
+            {grades?.map((grade) => (
               <option key={grade.id} value={grade.id}>
                 {grade}
               </option>
